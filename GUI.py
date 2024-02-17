@@ -22,18 +22,26 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("My App")
 
-        label = QLabel("Hello!")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        """TODO Para que pueda capturar una region de la pantalla hay que crear una segunda ventana transparente 
+        en pantalla completa y con la que se pueda dibujar y actualizar un rectangulo en el que se enmarque el 
+        area que se recortara para poder realizar el OCR, al realizar el ocr es importante que se minimize o desapresca 
+        la ventana principal"""
+        # self.setWindowOpacity(0.5) # Le da un valor de opacidad a la ventana completa
+        # self.showFullScreen() # Sirve para que entre en modo pantalla completa
+        # self.setWindowFlags(Qt.WindowType.FramelessWindowHint) # Sirve para quitar los bores (Botones de min max close)
 
-        self.setCentralWidget(label)
+        self.label = QLabel("Hello!")
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.setCentralWidget(self.label)
 
         # toolbar = QToolBar("My main toolbar")
         # toolbar.setIconSize(QSize(16, 16))
         # self.addToolBar(toolbar)
 
-        button_action = QAction(QIcon("bug.png"), "&Your button", self)
-        button_action.setStatusTip("This is your button")
-        button_action.triggered.connect(self.onMyToolBarButtonClick)
+        button_action = QAction(QIcon("bug.png"), "&Capturar region", self)
+        button_action.setStatusTip("Capturar region")
+        button_action.triggered.connect(self.captureRegion)
         button_action.setCheckable(True)
         # toolbar.addAction(button_action)
 
@@ -50,17 +58,40 @@ class MainWindow(QMainWindow):
 
         self.setStatusBar(QStatusBar(self))
 
-        menu = self.menuBar()
+        self.menu = self.menuBar()
 
-        file_menu = menu.addMenu("&File")
+        file_menu = self.menu.addMenu("&File")
         file_menu.addAction(button_action)
         file_menu.addSeparator()
 
         file_submenu = file_menu.addMenu("Submenu")
         file_submenu.addAction(button_action2)
 
+    def mouseMoveEvent(self, e):
+        # self.label.setText("mouseMoveEvent")
+        print(e.pos())
+
+
+    def mousePressEvent(self, e):
+        # self.label.setText("mousePressEvent")
+        print(e.pos())
+
+
+    def mouseReleaseEvent(self, e):
+        # self.label.setText("mouseReleaseEvent")
+        print(e.pos())
+
+
     def onMyToolBarButtonClick(self, s):
         print("click", s)
+        # self.showMinimized()
+
+    def captureRegion(self, s):
+        self.setWindowOpacity(0.2)  # Le da un valor de opacidad a la ventana completa
+        self.showFullScreen()  # Sirve para que entre en modo pantalla completa
+        self.label.hide()
+        self.menu.hide()
+        # self.setWindowFlags(Qt.WindowType.FramelessWindowHint)  # Sirve para quitar los bores (Botones de min max close)
 
 if __name__== '__main__':
     app = QApplication(sys.argv)
