@@ -6,7 +6,7 @@ y la opccion de que lo copee al porta papeles
 import sys
 
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtGui import QAction, QIcon, QPixmap, QPainter, QPen, QColor
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -14,13 +14,24 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QStatusBar,
     QToolBar,
+    QTextEdit,
+    QVBoxLayout,
+    QLayout,
 )
+import ctypes
+
+
+user32 = ctypes.windll.user32
+user32.SetProcessDPIAware()
+ancho, alto = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("My App")
+        self.resize(400, 300)
 
         """TODO Para que pueda capturar una region de la pantalla hay que crear una segunda ventana transparente 
         en pantalla completa y con la que se pueda dibujar y actualizar un rectangulo en el que se enmarque el 
@@ -29,11 +40,22 @@ class MainWindow(QMainWindow):
         # self.setWindowOpacity(0.5) # Le da un valor de opacidad a la ventana completa
         # self.showFullScreen() # Sirve para que entre en modo pantalla completa
         # self.setWindowFlags(Qt.WindowType.FramelessWindowHint) # Sirve para quitar los bores (Botones de min max close)
+        self.canvas = QPixmap(ancho, alto)
+        self.canvas.fill(Qt.GlobalColor.white)
 
-        self.label = QLabel("Hello!")
+        self.label = QLabel()
+        self.label.setPixmap(self.canvas)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
         self.setCentralWidget(self.label)
+        self.vertical_layout = QVBoxLayout(self.label)
+        self.vertical_layout.setSpacing(0)
+        # self.vertical_layout.setSizeConstraint(
+        #     QLayout.SetDefaultConstraint
+        # )
+        self.vertical_layout.setContentsMargins(0, 0, 0, 0)
+        self.label.hide()
+
+        # self.Text = QTextEdit()
 
         # toolbar = QToolBar("My main toolbar")
         # toolbar.setIconSize(QSize(16, 16))
@@ -69,17 +91,30 @@ class MainWindow(QMainWindow):
 
     def mouseMoveEvent(self, e):
         # self.label.setText("mouseMoveEvent")
-        print(e.pos())
+
+        print(e.pos().x())
+        self.actPoints = e.pos()
+
+        self.drawRectangle(self.begPoints.x(), self.begPoints.y(),
+                           self.actPoints.x()-self.begPoints.x(), self.actPoints.y()-self.begPoints.y())
+
+
 
 
     def mousePressEvent(self, e):
         # self.label.setText("mousePressEvent")
         print(e.pos())
+        self.begPoints = e.pos()
 
 
     def mouseReleaseEvent(self, e):
         # self.label.setText("mouseReleaseEvent")
         print(e.pos())
+        if self.capture:
+            self.showMinimized()
+
+            self.capture = 0
+
 
 
     def onMyToolBarButtonClick(self, s):
@@ -89,9 +124,26 @@ class MainWindow(QMainWindow):
     def captureRegion(self, s):
         self.setWindowOpacity(0.2)  # Le da un valor de opacidad a la ventana completa
         self.showFullScreen()  # Sirve para que entre en modo pantalla completa
-        self.label.hide()
+        # self.label.hide()
         self.menu.hide()
+        self.label.show()
+        self.capture = 1
+
         # self.setWindowFlags(Qt.WindowType.FramelessWindowHint)  # Sirve para quitar los bores (Botones de min max close)
+
+    def drawRectangle(self, x, y, h, w):
+        # canvas = self.label.pixmap()
+        canvas = QPixmap(ancho, alto)
+        canvas.fill(Qt.GlobalColor.white)
+        painter = QPainter(canvas)
+        pen = QPen()
+        pen.setWidth(3)
+        pen.setColor(QColor("#EB5160"))
+        painter.setPen(pen)
+        painter.drawRect(x, y, h, w)
+        painter.end()
+        self.label.setPixmap(canvas)
+
 
 if __name__== '__main__':
     app = QApplication(sys.argv)
