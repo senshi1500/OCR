@@ -6,7 +6,7 @@ se leea en vos alta lo que halla escrita en el texto
 import sys
 
 from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QAction, QIcon, QPixmap, QPainter, QPen, QColor, QBrush
+from PyQt6.QtGui import QAction, QIcon, QPixmap, QPainter, QPen, QColor, QBrush, QShortcut, QKeySequence
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -16,7 +16,14 @@ from PyQt6.QtWidgets import (
     QToolBar,
     QTextEdit,
     QVBoxLayout,
+    QHBoxLayout,
     QLayout,
+    QFileDialog,
+    QDialog,
+    QPushButton,
+    QLineEdit,
+    QDialogButtonBox
+
 )
 
 import ctypes
@@ -33,14 +40,43 @@ user32 = ctypes.windll.user32
 user32.SetProcessDPIAware()
 ancho, alto = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 
+class Dialog(QDialog):
+    def __init__(self, *args, **kwargs):
+        super(Dialog, self).__init__(*args, **kwargs)
+        self.setWindowTitle("Abouth")
+        self.setFixedSize(350, 200)
+
+        self.but_exit = QPushButton("Ok")
+        self.text_About = QLabel()
+
+        self.text_About.setText("""
+        Abouth this aplications
+        
+        This apliction is a simple experiment with OCR whith Python
+        """)
+
+        self.text_About.setAlignment(self.text_About.alignment().AlignCenter)
+        self.but_exit.clicked.connect(self.Exit)
+
+        self.vertical_layout_search = QVBoxLayout(self)
+        self.vertical_layout_search.addWidget(self.text_About)
+        self.vertical_layout_search.addWidget(self.but_exit)
+
+    def Exit(self):
+        self.close()
+
+
+
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        self.name = None
         self.actPoints = None
         self.capture = None
-        self.setWindowTitle("My App")
+        self.setWindowTitle("OCR")
         self.resize(400, 300)
 
         """TODO Para que pueda capturar una region de la pantalla hay que crear una segunda ventana transparente 
@@ -69,34 +105,114 @@ class MainWindow(QMainWindow):
         self.vertical_layout.addWidget(self.Text)
         self.setCentralWidget(self.Text)
 
-        button_action_full_screen = QAction(QIcon("bug.png"), "&OCR Pantalla completa", self)
+        self.Text.setStyleSheet('''
+                                        QTextEdit {
+                                            font: 10pt "Consolas";
+                                            background-color: white;
+                                            color: black;
+                                        }
+                                        ''')
+
+        button_action_full_screen = QAction("&OCR Pantalla completa", self)
         button_action_full_screen.setStatusTip("realizar el OCR a la pantalla completa")
         button_action_full_screen.triggered.connect(self.captureFullScren)
 
-        button_action_capture_region = QAction(QIcon("bug.png"), "&OCR region", self)
+        button_action_capture_region = QAction("&OCR region", self)
         button_action_capture_region.setStatusTip("Realizar el OCR a una region")
         button_action_capture_region.triggered.connect(self.captureRegion)
 
-        button_action2 = QAction(QIcon("bug.png"), "Your &button2", self)
-        button_action2.setStatusTip("This is your button2")
-        button_action2.triggered.connect(self.onMyToolBarButtonClick)
-        # button_action2.setCheckable(True)
-        # toolbar.addAction(button_action2)
+        save_action = QAction("Save", self)
+        save_action.setStatusTip("Save the document")
+        save_action.triggered.connect(self.SaveDocument)
+        save_action.setShortcut(QKeySequence("Ctrl+S"))
+
+
+        save_as_action = QAction("Save as", self)
+        save_as_action.setStatusTip("Save the document whit a name")
+        save_as_action.triggered.connect(self.SaveAsDocument)
+        save_as_action.setShortcut(QKeySequence("Ctrl+Alt+S"))
+        # save_action.setCheckable(True)
+        # toolbar.addAction(save_action)
+
+        Exit_action = QAction("Exit", self)
+        Exit_action.setStatusTip("Save the document whit a diferent name")
+        Exit_action.triggered.connect(self.ExitA)
+        Exit_action.setShortcut(QKeySequence("Ctrl+E"))# TODO Ponerr los Shorcuts restantes
 
         # toolbar.addWidget(QLabel("Hello"))
         # toolbar.addWidget(QCheckBox())
+
+        undo_action = QAction("Undo", self)
+        undo_action.triggered.connect(self.UndoText)
+        undo_action.setShortcut(QKeySequence("Ctrl+Z"))
+
+        copy_action = QAction("Copy", self)
+        copy_action.triggered.connect(self.CopyText)
+        copy_action.setShortcut(QKeySequence("Ctrl+C"))
+
+        cut_action = QAction("Cut", self)
+        cut_action.triggered.connect(self.CutText)
+        cut_action.setShortcut(QKeySequence("Ctrl+X"))
+
+        paste_action = QAction("page", self)
+        paste_action.triggered.connect(self.PasteText)
+        paste_action.setShortcut(QKeySequence("Ctrl+V"))
+
+        clear_action = QAction("Clear all", self)
+        clear_action.setStatusTip("borra todo")
+        clear_action.triggered.connect(self.ClearAll)
+        clear_action.setShortcut(QKeySequence("Ctrl+B"))
+
+        # search_action = QAction("Search", self)
+        # search_action.setStatusTip("find a word")
+        # search_action.triggered.connect(self.Search)
+        # search_action.setShortcut(QKeySequence("Ctrl+F"))
+        #
+        # remplace_action = QAction("Remplace", self)
+        # remplace_action.setStatusTip("remplace a word")
+        # remplace_action.triggered.connect(self.Remplace)
+        # remplace_action.setShortcut(QKeySequence("Ctrl+R"))
+        #
+        # options_action = QAction("Options", self)
+        # options_action.triggered.connect(self.onMyToolBarButtonClick)
+
+        abouth_action = QAction("Abouth", self)
+        abouth_action.setStatusTip("Information abouth this program")
+        abouth_action.triggered.connect(self.Abouth)
 
         self.setStatusBar(QStatusBar(self))
 
         self.menu = self.menuBar()
 
         file_menu = self.menu.addMenu("&Fill")
-        file_menu.addAction(button_action2)
-        file_menu.addSeparator()
+        OCR_menu = self.menu.addMenu("&OCR")
+        Edition_menu = self.menu.addMenu(
+            "&Edition")  # TODO Agregar funcinalidades buscar y remplazar
+        help_menu = self.menu.addMenu("&Help")
 
-        file_submenu = file_menu.addMenu("OCR")
-        file_submenu.addAction(button_action_full_screen)
-        file_submenu.addAction(button_action_capture_region)
+        file_menu.addAction(save_action)
+        file_menu.addAction(save_as_action)
+        file_menu.addAction(Exit_action)
+
+        OCR_menu.addAction(button_action_full_screen)
+        OCR_menu.addAction(button_action_capture_region)
+
+        Edition_menu.addAction(undo_action)
+        Edition_menu.addSeparator()
+        Edition_menu.addAction(copy_action)
+        Edition_menu.addAction(cut_action)
+        Edition_menu.addAction(paste_action)
+        Edition_menu.addAction(clear_action)
+        # Edition_menu.addSeparator()
+        # Edition_menu.addAction(search_action)
+        # Edition_menu.addAction(remplace_action)
+
+        # help_menu.addAction(options_action)
+        help_menu.addAction(abouth_action)
+
+        # file_submenu = file_menu.addMenu("OCR")
+        # file_submenu.addAction(button_action_full_screen)
+        # file_submenu.addAction(button_action_capture_region)
 
     def mouseMoveEvent(self, e):
         # self.label.setText("mouseMoveEvent")
@@ -106,6 +222,8 @@ class MainWindow(QMainWindow):
 
         self.drawRectangle(self.begPoints.x(), self.begPoints.y(),
                            self.actPoints.x() - self.begPoints.x(), self.actPoints.y() - self.begPoints.y())
+
+
 
     def mousePressEvent(self, e):
         # self.label.setText("mousePressEvent")
@@ -119,6 +237,15 @@ class MainWindow(QMainWindow):
         y = self.begPoints.y()
         w = e.pos().x() - self.begPoints.x()
         h = e.pos().y() - self.begPoints.y()
+
+        # Cambia las cordenadas del rectangulo para que no haya errores en el Screenshot
+
+        if w < 0:
+            w = w*(-1)
+            x = e.pos().x()
+        if h < 0:
+            h = h*(-1)
+            y = e.pos().y()
 
         if self.capture:
             self.showMinimized()
@@ -146,22 +273,69 @@ class MainWindow(QMainWindow):
             texto = self.OCR(screenshot=screenshot)
 
             self.Text.setPlainText(texto)
-
             self.capture = 0
 
-    def onMyToolBarButtonClick(self, s):
-        print("click", s)
-        # self.showMinimized()
+    def SaveDocument(self):
+        if self.name is None:
+            dialog = QFileDialog(self)
+            self.name, filter = dialog.getSaveFileName(self, "select directory", "C:\\", "text (*.txt)")
+            Title = self.name.split('/')
+            print(Title[-1])
+            self.Text.setDocumentTitle(Title[-1])
 
-    # FIXME hay que hacer que la ventana aparesca en su tmaño correcto
+        f = open(f'{self.name}', 'w')
+        f.write(self.Text.toPlainText())
+        f.close()
+
+    def SaveAsDocument(self):
+        dialog = QFileDialog(self)
+        self.name, filter = dialog.getSaveFileName(self, "select directory", "C:\\", "text (*.txt)")
+        Title = self.name.split('/')
+        print(Title[-1])
+        self.Text.setDocumentTitle(Title[-1])
+
+        f = open(f'{self.name}', 'w')
+        f.write(self.Text.toPlainText())
+        f.close()
+
+    def ExitA(self):
+        self.close()
+
+    def UndoText(self):
+        self.Text.undo()
+
+    def CopyText(self):
+        self.Text.copy()
+
+    def CutText(self):
+        self.Text.cut()
+
+    def PasteText(self):
+        self.Text.paste()
+
+    def ClearAll(self):
+        self.Text.clear()
+
+    # def Search(self): # TODO Agregar la opccion de buscar, remplazar y opcciones
+    #     pass
+
+    # def Remplace(self):
+    #     pass
+
+    # def Options(self):
+    #     pass
+
+    def Abouth(self):
+        dialog = Dialog(self)
+        dialog.show()
+
     def captureFullScren(self):
         self.showMinimized()
         screenshot = pyautogui.screenshot()
 
-        # self.setWindowOpacity(1)
-        # self.label.hide()
+
         self.showMaximized()
-        # self.showNormal()
+
         self.menu.show()
         self.Text.show()
         self.resize(400, 300)
@@ -189,6 +363,10 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.label)
         self.label.show()
         self.capture = 1
+
+        # texto = self.OCR(screenshot=screenshot)
+        # self.Text.setPlainText(texto)
+
 
     def drawRectangle(self, x, y, h, w):
         # canvas = self.label.pixmap()
