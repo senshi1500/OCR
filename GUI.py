@@ -1,8 +1,5 @@
-"""
-TODO Hay que crear una ineterfaz con un menu que tenga opcciones para leer imagenesdesde una dirreccion o leer un pdf,
-poder cambiar el idioma que leera, y la opccion de que lo copee al porta papeles admas de agregar una opccion para que
-se leea en vos alta lo que halla escrita en el texto
-"""
+#  TODO I have to refactor it
+
 import sys
 
 from PyQt6.QtCore import QSize, Qt
